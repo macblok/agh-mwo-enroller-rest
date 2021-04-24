@@ -5,3 +5,4 @@
 .logo
 /target/
 .DS_Store
+/bin/
