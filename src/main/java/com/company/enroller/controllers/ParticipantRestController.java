@@ -48,7 +48,7 @@ public class ParticipantRestController {
 	public ResponseEntity<?> registerParticipant(@RequestBody Participant participant) {
 		if (participantService.findByLogin(participant.getLogin())!= null) {
 			return new ResponseEntity<String>(
-					"Unable to create. Participant with login " + participant.getLogin() + " already exist", HttpStatus.NOT_FOUND);
+					"Unable to create. Participant with login " + participant.getLogin() + " already exists", HttpStatus.CONFLICT);
 
 		}
 
@@ -57,7 +57,7 @@ public class ParticipantRestController {
 
 	}
 
-	// DELETE http://localhost:8080/participants
+	// DELETE http://localhost:8080/participants/user2
 	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
 
 	public ResponseEntity<?> deleteParticipant(@PathVariable("id") String login) {
@@ -68,6 +68,26 @@ public class ParticipantRestController {
 		participantService.delete(participant);
 //		return new ResponseEntity<Participant>(participant, HttpStatus.OK);
 		return new ResponseEntity<Participant>(HttpStatus.NO_CONTENT); // oba podejscia sie stosuje
+	}
+	
+	// PUT http://localhost:8080/participants/user2
+	@RequestMapping(value = "/{id}", method = RequestMethod.PUT)
+
+	public ResponseEntity<?> updateParticipant(@PathVariable("id") String login, @RequestBody Participant participant) {
+		Participant foundParticipant = participantService.findByLogin(login);
+		if (participant == null) {
+			return new ResponseEntity(HttpStatus.NOT_FOUND);
+		}
+
+		// aktualizujemy tylko password, login jest kluczem glownym i nie mozemy go aktualizowac
+		// wariant 1
+		//participant.setPassword(login);
+		//wariant 2
+		foundParticipant.setPassword(participant.getPassword());
+		
+		participantService.update(foundParticipant);
+				
+		return new ResponseEntity<Participant>(foundParticipant, HttpStatus.OK);
 	}
 	
 }
