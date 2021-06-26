@@ -30,6 +30,15 @@ public class MeetingService {
 		return meeting;
 	}
 
+	public Collection<Meeting> findByTitleOrDescription(String titleOrDescription) {
+		String wanted = "'%" + titleOrDescription + "%'";
+		String hql = "FROM Meeting meeting WHERE meeting.title LIKE " + wanted + " OR meeting.description LIKE "
+				+ wanted;
+		Query query = session.createQuery(hql);
+		return query.list();
+
+	}
+
 	public void create(Meeting meeting) {
 		Transaction transaction = this.session.beginTransaction();
 		session.save(meeting);
@@ -41,14 +50,23 @@ public class MeetingService {
 		Transaction transaction = this.session.beginTransaction();
 		session.delete(meeting);
 		transaction.commit();
-		
+
 	}
 
 	public void update(Meeting meeting) {
 		Transaction transaction = this.session.beginTransaction();
 		session.merge(meeting);
 		transaction.commit();
-		
+
+	}
+
+	public Collection<Meeting> findMeetingsByParticipant(String login) {
+		String wanted = "'" + login + "'";
+		String hql = "SELECT m FROM Meeting m INNER JOIN m.participants participants WHERE participants.login = " + wanted;
+		Query query = session.createQuery(hql);
+		query.toString();
+		return query.list();
+
 	}
 
 }

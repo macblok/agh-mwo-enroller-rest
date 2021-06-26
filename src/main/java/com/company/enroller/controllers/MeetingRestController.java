@@ -1,6 +1,10 @@
 package com.company.enroller.controllers;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -51,7 +55,7 @@ public class MeetingRestController {
 	public ResponseEntity<?> createMeeting(@RequestBody Meeting meeting) {
 		if (meetingService.findById(meeting.getId()) != null) {
 			return new ResponseEntity<String>(
-					"Unable to create. Meeting with login " + meeting.getId() + " already exists", HttpStatus.CONFLICT);
+					"Unable to create. Meeting with ID " + meeting.getId() + " already exists", HttpStatus.CONFLICT);
 
 		}
 
@@ -113,7 +117,7 @@ public class MeetingRestController {
 		if (participant == null) {
 			return new ResponseEntity("There is no participant with login " + login, HttpStatus.NOT_FOUND);
 		}
-		
+
 		meeting.addParticipant(participant);
 		meetingService.update(meeting);
 		return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
@@ -123,7 +127,8 @@ public class MeetingRestController {
 	// DELETE http://localhost:8080/meetings/3/participants/user5
 	@RequestMapping(value = "/{id}/participants/{login}", method = RequestMethod.DELETE)
 
-	public ResponseEntity<?> removeMeetingParticipant(@PathVariable("id") long id, @PathVariable("login") String login) {
+	public ResponseEntity<?> removeMeetingParticipant(@PathVariable("id") long id,
+			@PathVariable("login") String login) {
 		Meeting meeting = meetingService.findById(id);
 		if (meeting == null) {
 			return new ResponseEntity("There is no meeting with id " + id, HttpStatus.NOT_FOUND);
@@ -131,13 +136,76 @@ public class MeetingRestController {
 
 		Participant participant = participantService.findByLogin(login);
 		if (participant == null) {
-			return new ResponseEntity("There is no participant with login " + login + " in the meeting with id " + id, HttpStatus.NOT_FOUND);
+			return new ResponseEntity("There is no participant with login " + login + " in the meeting with id " + id,
+					HttpStatus.NOT_FOUND);
 		}
-		
+
 		meeting.removeParticipant(participant);
 		meetingService.update(meeting);
 		return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
 
 	}
-	
+
+	// GET localhost:8080/meetings/sort
+	@RequestMapping(value = "/sort", method = RequestMethod.GET)
+
+	public ResponseEntity<?> getMeetingsSorted() {
+		Collection<Meeting> meetings = meetingService.getAll();
+//		Collections.sort((List<Meeting>) meetings, (m1, m2) -> (m1.getTitle().compareTo(m2.getTitle())));
+
+		List<String> meetingTitlesSorted = new ArrayList<String>();
+
+		for (Meeting m : meetings) {
+
+			meetingTitlesSorted.add(m.getTitle());
+
+		}
+
+		meetingTitlesSorted.sort(null);
+
+		List<Meeting> meetingsSorted = new ArrayList<Meeting>();
+
+		for (String s : meetingTitlesSorted) {
+
+			for (Meeting m : meetings) {
+				if (s.equals(m.getTitle())) {
+					meetingsSorted.add(m);
+				}
+			}
+
+		}
+
+		return new ResponseEntity<Collection<Meeting>>(meetingsSorted, HttpStatus.OK);
+
+	}
+
+// GET localhost:8080/meetings/title-description-search/
+	@RequestMapping(value = "/title-description-search/{title}", method = RequestMethod.GET)
+
+	public ResponseEntity<?> findMeeting(@PathVariable("title") String wanted) {
+		Collection<Meeting> meetings = meetingService.findByTitleOrDescription(wanted);
+
+		if (meetings == null) {
+			return new ResponseEntity("There are no meetings with title or description containing " + wanted,
+					HttpStatus.NOT_FOUND);
+		}
+
+		return new ResponseEntity<Collection<Meeting>>(meetings, HttpStatus.OK);
+
+	}
+
+	// GET http://localhost:8080/meetings/search-for-meetings/user5
+	@RequestMapping(value = "/search-for-meetings/{login}", method = RequestMethod.GET)
+	public ResponseEntity<?> findMeetings(@PathVariable("login") String login) {
+
+		Collection<Meeting> meetings = meetingService.findMeetingsByParticipant(login);
+
+//		if (meetings == null) {
+//			return new ResponseEntity("User " + login + " is not registered for any meeting", HttpStatus.NOT_FOUND);
+//		}
+
+		return new ResponseEntity<Collection<Meeting>>(meetings, HttpStatus.OK);
+
+	}
+
 }

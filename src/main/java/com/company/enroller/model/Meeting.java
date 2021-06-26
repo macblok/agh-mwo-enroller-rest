@@ -1,6 +1,7 @@
 package com.company.enroller.model;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -83,5 +84,5 @@ public class Meeting {
 	public Collection<Participant> getParticipants() {
 		return participants;
 	}
-
+	
 }
