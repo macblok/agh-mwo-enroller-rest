@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.company.enroller.model.Participant;
@@ -31,10 +32,41 @@ public class MeetingRestController {
 	ParticipantService participantService;
 
 	// GET localhost:8080/meetings
+	// GET localhost:8080/meetings?sort=asc
+	// GET localhost:8080/meetings?title=relax+after+job
+	// GET http://localhost:8080/meetings?user=user5
+	//localhost:8080/meetings?sort=asc&login=user3&title=relax
 	@RequestMapping(value = "", method = RequestMethod.GET)
 
-	public ResponseEntity<?> getMeetings() {
+	public ResponseEntity<?> getMeetings(@RequestParam(value = "sort", required = false) String sort,
+			@RequestParam(value = "title", required = false) String title,
+			@RequestParam(value = "login", required = false) String login) {
 		Collection<Meeting> meetings = meetingService.getAll();
+
+		if (title != null) {
+			Collection<Meeting> meetingsWithTitle = meetingService.findByTitleOrDescription(title);
+
+			if (meetingsWithTitle.isEmpty()) {
+				return new ResponseEntity("There are no meetings with title or description containing " + title,
+						HttpStatus.NOT_FOUND);
+			} else {
+				meetings.retainAll(meetingsWithTitle);
+			}
+		}
+
+		if (login != null) {
+			Collection<Meeting> meetingsWithLogin = meetingService.findMeetingsByParticipant(login);
+			if (meetingsWithLogin.isEmpty()) {
+				return new ResponseEntity("User " + login + " is not registered for any meeting", HttpStatus.NOT_FOUND);
+			} else {
+				meetings.retainAll(meetingsWithLogin);
+			}
+		}
+		
+		if (sort != null && sort.equals("asc")) {
+			meetingService.ascendingSortByTitles(meetings);
+		}
+
 		return new ResponseEntity<Collection<Meeting>>(meetings, HttpStatus.OK);
 	}
 
@@ -104,23 +136,23 @@ public class MeetingRestController {
 		return new ResponseEntity<Collection<Participant>>(participants, HttpStatus.OK);
 	}
 
-	// POST http://localhost:8080/meetings/3/participants/user5
-	@RequestMapping(value = "/{id}/participants/{login}", method = RequestMethod.POST)
+	// POST http://localhost:8080/meetings/3/participants
+	@RequestMapping(value = "/{id}/participants", method = RequestMethod.POST)
 
-	public ResponseEntity<?> addMeetingParticipant(@PathVariable("id") long id, @PathVariable("login") String login) {
+	public ResponseEntity<?> addMeetingParticipant(@PathVariable("id") long id, @RequestBody Participant participant) {
 		Meeting meeting = meetingService.findById(id);
 		if (meeting == null) {
 			return new ResponseEntity("There is no meeting with id " + id, HttpStatus.NOT_FOUND);
 		}
 
-		Participant participant = participantService.findByLogin(login);
-		if (participant == null) {
-			return new ResponseEntity("There is no participant with login " + login, HttpStatus.NOT_FOUND);
+		if (participantService.findByLogin(participant.getLogin()) == null) {
+			return new ResponseEntity("There is no participant with login " + participant.getLogin(),
+					HttpStatus.NOT_FOUND);
 		}
 
 		meeting.addParticipant(participant);
 		meetingService.update(meeting);
-		return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
+		return new ResponseEntity<Meeting>(meeting, HttpStatus.CREATED);
 
 	}
 
@@ -143,68 +175,6 @@ public class MeetingRestController {
 		meeting.removeParticipant(participant);
 		meetingService.update(meeting);
 		return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
-
-	}
-
-	// GET localhost:8080/meetings/sort
-	@RequestMapping(value = "/sort", method = RequestMethod.GET)
-
-	public ResponseEntity<?> getMeetingsSorted() {
-		Collection<Meeting> meetings = meetingService.getAll();
-//		Collections.sort((List<Meeting>) meetings, (m1, m2) -> (m1.getTitle().compareTo(m2.getTitle())));
-
-		List<String> meetingTitlesSorted = new ArrayList<String>();
-
-		for (Meeting m : meetings) {
-
-			meetingTitlesSorted.add(m.getTitle());
-
-		}
-
-		meetingTitlesSorted.sort(null);
-
-		List<Meeting> meetingsSorted = new ArrayList<Meeting>();
-
-		for (String s : meetingTitlesSorted) {
-
-			for (Meeting m : meetings) {
-				if (s.equals(m.getTitle())) {
-					meetingsSorted.add(m);
-				}
-			}
-
-		}
-
-		return new ResponseEntity<Collection<Meeting>>(meetingsSorted, HttpStatus.OK);
-
-	}
-
-// GET localhost:8080/meetings/title-description-search/
-	@RequestMapping(value = "/title-description-search/{title}", method = RequestMethod.GET)
-
-	public ResponseEntity<?> findMeeting(@PathVariable("title") String wanted) {
-		Collection<Meeting> meetings = meetingService.findByTitleOrDescription(wanted);
-
-		if (meetings == null) {
-			return new ResponseEntity("There are no meetings with title or description containing " + wanted,
-					HttpStatus.NOT_FOUND);
-		}
-
-		return new ResponseEntity<Collection<Meeting>>(meetings, HttpStatus.OK);
-
-	}
-
-	// GET http://localhost:8080/meetings/search-for-meetings/user5
-	@RequestMapping(value = "/search-for-meetings/{login}", method = RequestMethod.GET)
-	public ResponseEntity<?> findMeetings(@PathVariable("login") String login) {
-
-		Collection<Meeting> meetings = meetingService.findMeetingsByParticipant(login);
-
-//		if (meetings == null) {
-//			return new ResponseEntity("User " + login + " is not registered for any meeting", HttpStatus.NOT_FOUND);
-//		}
-
-		return new ResponseEntity<Collection<Meeting>>(meetings, HttpStatus.OK);
 
 	}
 

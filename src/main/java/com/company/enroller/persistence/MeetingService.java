@@ -1,6 +1,9 @@
 package com.company.enroller.persistence;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import org.hibernate.Query;
 import org.hibernate.Session;
@@ -39,6 +42,10 @@ public class MeetingService {
 
 	}
 
+	public void ascendingSortByTitles(Collection<Meeting> meetings) {
+		Collections.sort((List<Meeting>)meetings);
+	}
+	
 	public void create(Meeting meeting) {
 		Transaction transaction = this.session.beginTransaction();
 		session.save(meeting);
